@@ -1,0 +1,7 @@
+{
+  "name": "VozAtiva",
+  "description": "Um aplicativo da web que fornece tradução de voz em tempo real entre inglês e português usando a API Gemini para tradução e APIs do navegador para reconhecimento e síntese de fala.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
