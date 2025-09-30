@@ -207,6 +207,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4 sm:p-6 md:p-10">
+      {/* Inform the user when the app is falling back to a public translation service */}
+      {typeof window !== 'undefined' && (window as any).__translationFallback && (
+        <div className="w-full max-w-4xl mx-auto mb-4">
+          <div className="text-sm text-yellow-200 bg-yellow-900/30 border border-yellow-600 rounded p-3">
+            Tradução via serviço público (modo fallback). Resultados podem ser limitados ou temporariamente indisponíveis.
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-4xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-accent to-brand-primary">

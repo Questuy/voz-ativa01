@@ -25,8 +25,16 @@ const getLanguageName = (code) => {
 app.post('/api/translate', async (req, res) => {
   try {
     const { text, sourceLang, targetLang } = req.body;
+    console.log('Received /api/translate request body:', JSON.stringify(req.body));
     if (!text || !sourceLang || !targetLang) {
       return res.status(400).json({ error: 'Missing parameters' });
+    }
+
+    // If MOCK_TRANSLATION is enabled, return a fake translation so the
+    // frontend and speech parts can be tested without a real API key.
+    if (process.env.MOCK_TRANSLATION === '1') {
+      // Very simple mock: prepend the target language code to the text.
+      return res.json({ translation: `[${targetLang}] ${text}` });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -53,7 +61,51 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3001;
-app.listen(port, () => {
-  console.log(`Translation server listening on port ${port}`);
+// Health endpoint to verify server is up
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
+
+// Global error handlers to catch unexpected exceptions and rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+const fs = require('fs');
+const path = require('path');
+const port = process.env.PORT || 3001;
+// Default to 0.0.0.0 so the dev server is reachable from other devices on the LAN
+// (use HOST=127.0.0.1 in .env if you only want localhost). For production use a
+// secured configuration.
+const host = process.env.HOST || '0.0.0.0';
+
+// Ensure log directory exists
+const logFile = path.join(__dirname, 'requests.log');
+
+app.listen(port, host, () => {
+  console.log(`Translation server listening on http://${host}:${port}`);
+});
+
+// Append request bodies to a local log file for debugging (append-only)
+const appendRequestLog = (obj) => {
+  try {
+    fs.appendFileSync(logFile, JSON.stringify({ timestamp: new Date().toISOString(), body: obj }) + '\n');
+  } catch (e) {
+    console.error('Failed to write request log:', e);
+  }
+};
+
+// wrap the existing POST handler to also write to the log file
+const originalPost = app._router.stack.find((r) => r.route && r.route.path === '/api/translate' && r.route.methods.post);
+if (originalPost) {
+  const layer = originalPost.route.stack[0];
+  const originalHandler = layer.handle;
+  layer.handle = async (req, res, next) => {
+    appendRequestLog(req.body);
+    return originalHandler(req, res, next);
+  };
+}
