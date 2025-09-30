@@ -1,4 +1,6 @@
 // Simple express server to host a secure translation endpoint using @google/genai
+// Load environment variables from a .env file when present (development)
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -29,7 +31,8 @@ app.post('/api/translate', async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured on server' });
+      // Helpful hint for developers: tell them which env var is expected
+      return res.status(500).json({ error: 'API key not configured on server. Set GEMINI_API_KEY (or API_KEY) in environment or in a .env file.' });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -45,7 +48,8 @@ app.post('/api/translate', async (req, res) => {
     return res.json({ translation: translated });
   } catch (err) {
     console.error('Server translation error:', err);
-    return res.status(500).json({ error: 'Translation failed' });
+    // Include basic error details to help debugging in development
+    return res.status(500).json({ error: 'Translation failed', details: err && err.message ? err.message : String(err) });
   }
 });
 
